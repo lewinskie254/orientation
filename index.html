@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>JPG Environment in A-Frame</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://kit.fontawesome.com/7063ee0b81.js" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sigmar&display=swap" rel="stylesheet">
+    <style>
+        .control-buttons {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        .control-buttons button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 24px;
+            background: white;
+            border: none;
+            cursor: pointer;
+        }
+        .control-buttons button:focus {
+            outline: none;
+        }
+        #sky {
+            transition: rotation 10s linear;
+        }
+        .scene-description {
+            color: #fff; 
+            background-color: #36454fa4; 
+            padding: 20px; 
+            font-family: "Sigmar", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-buttons">
+        <button id="play-button" onclick="playAudio()">
+            <i class="fas fa-play"></i>
+        </button>
+        <button id="pause-button" onclick="pauseAudio()">
+            <i class="fas fa-pause"></i>
+        </button>
+        <button id="unmute-button" onclick="toggleMuteUnmute()">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <button id="mute-button" onclick="toggleMuteUnmute()" style="display: none;">
+            <i class="fas fa-volume-mute"></i>
+        </button>
+        
+        <div class="scene-description">
+            <h1>Scene 1: Orientation</h1>
+        </div>
+    </div>
+
+    <a-scene>
+        <!-- Skybox with JPG image -->
+        <a-sky id="sky" src="./aframe.jpg"></a-sky>
+        
+        <!-- Add background audio -->
+        <a-entity id="audio-entity" sound="src: url(./audio.mp3); autoplay: false; loop: true; poolSize: 1"></a-entity>
+    </a-scene>
+    
+    <script>
+        const audioEntity = document.querySelector('#audio-entity');
+        const playButton = document.getElementById('play-button');
+        const pauseButton = document.getElementById('pause-button');
+        const muteButton = document.getElementById('mute-button'); 
+        const unmuteButton = document.getElementById('unmute-button'); 
+        const sky = document.querySelector('#sky');
+
+        let isMuted = false;
+        let isPlaying = false;
+        let rotation = 0;
+        let rotateInterval;
+
+        function playAudio() {
+            audioEntity.components.sound.playSound();
+            isPlaying = true;
+            updateUI();
+            rotateSkybox();
+        }
+
+        function pauseAudio() {
+            audioEntity.components.sound.pauseSound();
+            isPlaying = false;
+            updateUI();
+            stopRotation();
+        }
+
+        function toggleMuteUnmute() {
+            isMuted = !isMuted;
+            audioEntity.components.sound.setVolume(isMuted ? 0 : 1);
+            updateMutedState();
+        }
+
+        function updateMutedState() {
+            muteButton.style.display = isMuted ? 'inline-block' : 'none'; 
+            unmuteButton.style.display = isMuted ? 'none' : 'inline-block'; 
+        }
+
+        function updateUI() {
+            playButton.style.display = isPlaying ? 'none' : 'inline-block';
+            pauseButton.style.display = isPlaying ? 'inline-block' : 'none';
+        }
+
+        function rotateSkybox() {
+            rotateInterval = setInterval(() => {
+                if (!AFRAME.scenes[0].is('vr-mode-ui', true)) {
+                    rotation += 0.05; // Slow rotation increment
+                    sky.setAttribute('rotation', `0 ${rotation} 0`);
+                } else {
+                    clearInterval(rotateInterval);
+                    rotateInterval = null;
+                }
+            }, 120); // Slow interval for rotation updates
+        }
+
+        function stopRotation() {
+            if (rotateInterval) {
+                clearInterval(rotateInterval);
+                rotateInterval = null;
+            }
+        }
+
+        // Initialize UI state
+        updateUI();
+        updateMutedState();
+
+        // Start rotation by default
+        playAudio();
+
+        // Stop rotation when entering VR mode
+        AFRAME.scenes[0].addEventListener('enter-vr', () => {
+            stopRotation();
+        });
+
+        // Restart rotation when exiting VR mode
+        AFRAME.scenes[0].addEventListener('exit-vr', () => {
+            if (isPlaying) {
+                rotateSkybox();
+            }
+        });
+    </script>
+</body>
+</html>
